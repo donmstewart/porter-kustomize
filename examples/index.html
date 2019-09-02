@@ -33,7 +33,7 @@
       
         <meta name="lang:search.tokenizer" content="[\s\-]+">
       
-      <link rel="shortcut icon" href="https://porter.sh/src/img/favicon.png">
+      <link rel="shortcut icon" href="../images/logos/favicon.png">
       <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-3.0.4">
     
     
@@ -113,7 +113,7 @@
       <div class="md-flex__cell md-flex__cell--shrink">
         <a href=".." title="Porter-Kustomize" class="md-header-nav__button md-logo">
           
-            <img src="https://porter.sh/src/img/favicon.png" width="24" height="24">
+            <img src="https://porter.sh/images/porter-logo.png" width="24" height="24">
           
         </a>
       </div>
@@ -209,7 +209,7 @@
   <label class="md-nav__title md-nav__title--site" for="__drawer">
     <a href=".." title="Porter-Kustomize" class="md-nav__button md-logo">
       
-        <img src="https://porter.sh/src/img/favicon.png" width="48" height="48">
+        <img src="https://porter.sh/images/porter-logo.png" width="48" height="48">
       
     </a>
     Porter-Kustomize
@@ -310,6 +310,27 @@
   
     <nav class="md-nav">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cnab-bundle-manifest" title="CNAB Bundle Manifest" class="md-nav__link">
+    CNAB Bundle Manifest
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mixins" title="mixins:" class="md-nav__link">
+    mixins:
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#credentials" title="credentials:" class="md-nav__link">
+    credentials:
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#parameters" title="parameters:" class="md-nav__link">
@@ -420,6 +441,27 @@
   
     <nav class="md-nav">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cnab-bundle-manifest" title="CNAB Bundle Manifest" class="md-nav__link">
+    CNAB Bundle Manifest
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mixins" title="mixins:" class="md-nav__link">
+    mixins:
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#credentials" title="credentials:" class="md-nav__link">
+    credentials:
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#parameters" title="parameters:" class="md-nav__link">
@@ -759,9 +801,26 @@ kuberntes to use is in fact identical. </p>
 <li>local disk</li>
 <li>remote git repository</li>
 </ul>
-<p>times to generate the kubernetes manifest can vary by a considerable amount i.e. with mnay micro-services all
+<p>times to generate the kubernetes manifest can vary by a considerable amount i.e. with many micro-services all
 pulling base configuration from say GiutHub this introduces quite an overhead timewise. </p>
 </div>
+<h4 id="cnab-bundle-manifest">CNAB Bundle Manifest<a class="headerlink" href="#cnab-bundle-manifest" title="Permanent link">&para;</a></h4>
+<p>The beginning of the <code>porter.yaml</code> defines information for the generated CNAB bundle. 
+This is lines 6-10 in the <code>porter.yaml</code> file.</p>
+<h4 id="mixins"><code>mixins:</code><a class="headerlink" href="#mixins" title="Permanent link">&para;</a></h4>
+<p>This is where we define the <code>mixins</code> to be used as part of the <code>install</code> and <code>uninstall</code> steps in porter. 
+The <em><code>mixin-runtime</code></em> binaries will be copied into the docker <code>innvocationImage</code> in order porter can execute the
+necessary steps.</p>
+<p>This example defines usage of: -</p>
+<ul>
+<li>exec (not actually used)</li>
+<li>kustomize</li>
+<li>kubernetes</li>
+</ul>
+<h4 id="credentials"><code>credentials</code>:<a class="headerlink" href="#credentials" title="Permanent link">&para;</a></h4>
+<p>The credentials definition on lines 21-23 is necessary in order that the <code>kubernetes</code> mixin can <code>apply</code> or <code>delete</code> the
+specified manifests from the given cluster.</p>
+<p>Creation of the credentials is done using the <code>porter credentials generate</code> command from the cli.</p>
 <h4 id="parameters"><code>parameters:</code><a class="headerlink" href="#parameters" title="Permanent link">&para;</a></h4>
 <p>For this advanced exmaple we have defined two parameters that we need to pass to <code>porter</code> as part of the innvocation.
 These parameters are: -</p>
