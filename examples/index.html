@@ -859,6 +859,13 @@ manifest <code>yaml</code> files. </p>
 configuration block <code>manifests</code> section and attributes which in our example are defined at lines 55-56.</p>
 </div>
 <h4 id="install-kubernetes"><code>install:</code> - <code>kubernetes</code><a class="headerlink" href="#install-kubernetes" title="Permanent link">&para;</a></h4>
+<p>This is the configuration for the <code>kubernetes</code> mixin for porter. Here we define what we want <code>kubectl</code> to apply to 
+the specified kubernetes cluster by pointing to a directory within the <code>innovcationImage</code> where it can find the 
+necessary kubernetes <code>yaml</code> manifests.</p>
+<p>This is not part of the <code>porter-kustomize</code> mixin but is present in order to be able to perform the 
+deployments/upgrades/undeployments defined in the output from kustomize.</p>
+<p>This plugin documentation can be found <a href="https://porter.sh/mixins/kubernetes/">here</a> and the GitHub repository
+is <a href="https://github.com/deislabs/porter/tree/master/pkg/kubernetes">here</a>.</p>
                 
                   
                 
