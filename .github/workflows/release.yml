@@ -35,7 +35,6 @@ jobs:
             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
             dep ensure
         fi
-        make xbuild-all xbuild build install
       env:
         GOPATH: /home/runner/work/porter-kustomize/go
 
