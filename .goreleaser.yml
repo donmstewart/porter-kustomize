@@ -5,84 +5,135 @@ before:
     - rm -Rf dist/
     - dep ensure
     - go generate ./...
+dist: dist/mixins
 builds:
-    # You can have multiple builds defined as a yaml list
-    -
-      # ID of the build.
-      # Defaults to the project name.
-      id: "build-runtime"
+  # You can have multiple builds defined as a yaml list
+  - # ID of the build.
+    # Defaults to the project name.
+    id: "build-runtime"
 
-      # Binary name.
-      # Can be a path (e.g. `bin/app`) to wrap the binary in a directory.
-      # Default is the name of the project directory.
-      binary: porter-kustomize-runtime
-
-      # Path to main.go file or main package.
-      # Default is `.`.
-      main: ./cmd/kustomize/.
-
-      # Custom ldflags templates.
-      # Default is `-s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}} -X main.date={{.Date}} -X main.builtBy=goreleaser`.
-      ldflags:
-        - -w -X github.com/donmstewart/porter-mixin/pkg.Version={{.Version}} -X github.com/donmstewart/porter-mixin/pkg.Commit={{.Tag}}
-        -
-      env:
-        - CGO_ENABLED=0
-
-      # GOOS list to build for.
-      # For more info refer to: https://golang.org/doc/install/source#environment
-      # Defaults are darwin and linux.
-      goos:
-        - darwin
-        - linux
-        - windows
-
-      # GOARCH to build for.
-      # For more info refer to: https://golang.org/doc/install/source#environment
-      # Defaults are 386 and amd64.
-      goarch:
-        - amd64
-
-    - # ID of the build.
-      # Defaults to the project name.
-      id: "build-client"
-
-      # Binary name.
-      # Can be a path (e.g. `bin/app`) to wrap the binary in a directory.
-      # Default is the name of the project directory.
-      binary: porter-kustomize
+    # Binary name.
+    # Can be a path (e.g. `bin/app`) to wrap the binary in a directory.
+    # Default is the name of the project directory.
+    binary: porter-kustomize-runtime
 
     # Path to main.go file or main package.
-      # Default is `.`.
-      main: ./cmd/kustomize/.
-      # Custom ldflags templates.
-      # Default is `-s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}} -X main.date={{.Date}} -X main.builtBy=goreleaser`.
-      ldflags:
-        - -w -X github.com/donmstewart/porter-mixin/pkg.Version={{.Version}} -X github.com/donmstewart/porter-mixin/pkg.Commit={{.Tag}}
-      env:
-        - CGO_ENABLED=0
-      goos:
-        - darwin
-      goarch:
-        - amd64
-      hooks:
-        post:
-          install dist/mixins
-dist: dist/mixins
+    # Default is `.`.
+    main: ./cmd/kustomize/.
+
+    # Custom ldflags templates.
+    # Default is `-s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}} -X main.date={{.Date}} -X main.builtBy=goreleaser`.
+    ldflags:
+      - -w -X github.com/donmstewart/porter-mixin/pkg.Version={{.Version}} -X github.com/donmstewart/porter-mixin/pkg.Commit={{.Tag}}
+      -
+    env:
+      - CGO_ENABLED=0
+
+    # GOOS list to build for.
+    # For more info refer to: https://golang.org/doc/install/source#environment
+    # Defaults are darwin and linux.
+    goos:
+      - darwin
+      - linux
+      - windows
+
+    # GOARCH to build for.
+    # For more info refer to: https://golang.org/doc/install/source#environment
+    # Defaults are 386 and amd64.
+    goarch:
+      - amd64
+
+  - # ID of the build.
+    # Defaults to the project name.
+    id: "build-client"
+
+    # Binary name.
+    # Can be a path (e.g. `bin/app`) to wrap the binary in a directory.
+    # Default is the name of the project directory.
+    binary: porter-kustomize
+
+    # Path to main.go file or main package.
+    # Default is `.`.
+    main: ./cmd/kustomize/.
+    # Custom ldflags templates.
+    # Default is `-s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}} -X main.date={{.Date}} -X main.builtBy=goreleaser`.
+    ldflags:
+      - -w -X github.com/donmstewart/porter-mixin/pkg.Version={{.Version}} -X github.com/donmstewart/porter-mixin/pkg.Commit={{.Tag}}
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - "{{.Env.GOOS}}"
+    goarch:
+      - "{{.Env.GOARCH}}"
+    #hooks:
+    #  post:
+    #    install "{{.Env.CLIENT_TARGET}}"
 archives:
-- replacements:
-    darwin: Darwin
-    linux: Linux
-    windows: Windows
-    386: i386
-    amd64: x86_64
+  - # ID of this archive.
+    # Defaults to `default`.
+    id: porter-kustomize
+
+    # Builds reference which build instances should be archived in this archive.
+    builds:
+      - "build-runtime"
+    # Archive name template.
+    # Defaults:
+    # - if format is `tar.gz`, `gz` or `zip`:
+    #   - `{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}`
+    # - if format is `binary`:
+    #   - `{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}`
+    #name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+
+    replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
+    format: binary
 checksum:
-  name_template: 'checksums.txt'
+  name_template: "checksums.txt"
+  # Algorithm to be used.
+  # Accepted options are sha256, sha512, sha1, crc32, md5, sha224 and sha384.
+  # Default is sha256.
+  algorithm: sha256
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  name_template: "{{ .Tag }}-SNAPSHOT"
 changelog:
   sort: asc
   filters:
     exclude:
-    - '^docs:'
-    - '^test:'
+      - '^docs:'
+      - '^test:'
+release:
+  # Repo in which the release will be created.
+  # Default is extracted from the origin remote URL.
+  # Note: it can only be one: either github or gitlab or gitea
+  github:
+    owner: donmstewart
+    name: porter-kustomize
+
+  # IDs of the archives to use.
+  # Defaults to all.
+  #ids:
+  #  - porter-kustomize
+
+  # If set to true, will not auto-publish the release.
+  # Default is false.
+  draft: true
+
+  # If set to auto, will mark the release as not ready for production
+  # in case there is an indicator for this in the tag e.g. v1.0.0-rc1
+  # If set to true, will mark the release as not ready for production.
+  # Default is false.
+  prerelease: auto
+
+  # You can change the name of the GitHub release.
+  # Default is `{{.Tag}}`
+  name_template: "{{.ProjectName}}-v{{.Version}"
+
+  # You can disable this pipe in order to not upload any artifacts to
+  # GitHub.
+  # Defaults to false.
+  disable: false

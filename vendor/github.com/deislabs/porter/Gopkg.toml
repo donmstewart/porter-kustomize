@@ -1,17 +1,14 @@
 [[constraint]]
   name = "github.com/deislabs/cnab-go"
-  source = "github.com/vdice/cnab-go"
-  branch = "fix/custom-validators"
+  version = "v0.7.1-beta1"
 
 [[override]]
   name = "github.com/deislabs/cnab-go"
-  source = "github.com/vdice/cnab-go"
-  branch = "fix/custom-validators"
+  version = "v0.7.1-beta1"
 
-# Using master until there is a release of cnab-to-oci
 [[constraint]]
   name = "github.com/docker/cnab-to-oci"
-  branch = "master"
+  version = "v0.2.0-beta1"
 
 [[constraint]]
   name = "github.com/carolynvs/datetime-printer"
@@ -98,6 +95,10 @@
 [[constraint]]
   name = "github.com/PaesslerAG/jsonpath"
   version = "v0.1.1"
+
+[[constraint]]
+  name = "github.com/hashicorp/go-plugin"
+  version = "^v1.0.0"
 
 [prune]
   non-go = true

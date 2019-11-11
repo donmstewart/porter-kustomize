@@ -30,36 +30,41 @@ func TestMixin_UnmarshalInstallStep(t *testing.T) {
 	var action InstallAction
 	err = yaml.Unmarshal(b, &action)
 	require.NoError(t, err)
-	//	require.Len(t, action.Steps, 1)
+	require.Len(t, action.Steps, 2)
 	step := action.Steps[0]
 
-	//	assert.Equal(t, "Install MySQL", step.Description)
-	//	assert.NotEmpty(t, step.Outputs)
-	//	assert.Equal(t, KustomizeOutput{"mysql-root-password", "porter-ci-mysql", "mysql-root-password"}, step.Outputs[0])
-
 	assert.Equal(t, "porter-robotshop-cart", step.Name)
-	//	assert.Equal(t, '{"kustomize/robotshop/overlays/local/cart"', step.Kustomization)
-	//assert.Equal(t, "0.10.2", step.Version)
-	//assert.Equal(t, true, step.Replace)
-	//assert.Equal(t, map[string]string{"mysqlDatabase": "mydb", "mysqlUser": "myuser",
-	//	"livenessProbe.initialDelaySeconds": "30", "persistence.enabled": "true"}, step.Set)
+	assert.Equal(t, "Generate the Kubernetes deployment file for the Shopping Cart Microservice", step.Description)
+	assert.Contains(t, step.Kustomization, "kustomize/robotshop/overlays/local/cart")
+	assert.Equal(t, "manifests/", step.Manifests)
+
+	assert.Equal(t, map[string]string{"kustomizeBaseGHToken": "{{ bundle.parameters.gh_token }}"}, step.Set)
 }
 
 func TestMixin_Install(t *testing.T) {
-	name := "MYRELEASE"
-	kustomization := []string{"MYKUSTOMIZATION"}
+	microService := "cart"
+	name := "porter-robotshop-" + microService
+	kustomization := []string{"kustomize/robotshop/overlays/local/" + microService}
+	manifests := "manifests"
 	reorder := "legacy"
+	setArgs := map[string]string{
+		"kustomizeBaseGHToken": "{{ bundle.parameters.gh_token }}",
+	}
 
-	baseInstall := fmt.Sprintf(`kustomize build --name %s %s`, name, kustomization)
-
+	expectedCmd := fmt.Sprintf("kustomize build %s -o %s/%s.yaml", kustomization[0], manifests, microService)
+	expectedGitCmd := fmt.Sprintf("git config --global url.https://{{ bundle.parameters.gh_token }}:@github.com/.insteadOf https://github.com/")
 	installTests := []InstallTest{
 		{
-			expectedCommand: baseInstall,
+			// As we issue two exec commands we need to concatenate the two commands and separate them with
+			//  a "\n" so Porter knows to expect and compare multiple comd outputs.
+			expectedCommand: expectedGitCmd + "\n" + expectedCmd,
 			installStep: InstallStep{
 				InstallArguments: InstallArguments{
 					Step:          Step{Description: "Install Robotshop"},
 					Name:          name,
 					Kustomization: kustomization,
+					Manifests:     manifests,
+					Set:           setArgs,
 					Reorder:       reorder,
 				},
 			},

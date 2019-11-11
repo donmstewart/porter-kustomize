@@ -1,0 +1,25 @@
+name: robotshop-bundle
+version: 0.3.2
+description: "Stans Robotshop Example"
+
+parameters:
+  - name: gh_token
+    type: string
+    default: gh_token
+
+uninstall:
+  - kustomize:
+      description: "Generate the Kubernetes deployment file for the Shopping Cart Microservice"
+      name: porter-robotshop-cart
+      kustomization_input:
+          - "kustomize/robotshop/overlays/local/cart"
+      kubernetes_manifest_output: manifests/
+      set:
+        kustomizeBaseGHToken: "{{ bundle.parameters.gh_token }}"
+
+  - kubernetes:
+      description: "Deploy the Shopping Cart"
+      manifests:
+      - /cnab/apps/manifests
+    wait: true
+

@@ -1,7 +1,6 @@
 package kustomize
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/pkg/errors"
 	"os"
@@ -17,6 +16,8 @@ func (m *Mixin) manifestHandling(step interface{}) error {
 
 	switch s := step.(type) {
 	case InstallStep:
+		manifests = s.Manifests
+	case UpgradeStep:
 		manifests = s.Manifests
 	case UninstallStep:
 		manifests = s.Manifests
@@ -48,34 +49,56 @@ func (m *Mixin) manifestHandling(step interface{}) error {
 func (m *Mixin) buildAndExecuteKustomizeCmds(step interface{}, commands []*exec.Cmd) error {
 	var kustomization []string
 	var manifests string
+	var reorder = "legacy"
 
 	switch s := step.(type) {
 	case InstallStep:
 		kustomization = s.Kustomization
 		manifests = s.Manifests
+		if s.Reorder != "" {
+			reorder = s.Reorder
+		}
+	case UpgradeStep:
+		kustomization = s.Kustomization
+		manifests = s.Manifests
+		if s.Reorder != "" {
+			reorder = s.Reorder
+		}
 	case UninstallStep:
 		kustomization = s.Kustomization
 		manifests = s.Manifests
+		if s.Reorder != "" {
+			reorder = s.Reorder
+		}
 	default:
 		return errors.New("Unsupported Step type")
+	}
+
+	if m.Debug {
+		fmt.Println("DEBUG: Reorder: " + reorder)
 	}
 
 	// Loop around the list of kustomization directories specified in the `porter.yaml`
 	for _, kustomizationFile := range kustomization {
 		// The path to write out the generatred Kubernetes Manifests
-		pathSegments := strings.Split(kustomizationFile, "/")
+		pathSegments := strings.Split(kustomizationFile, string(os.PathSeparator))
+
+		if strings.HasSuffix(manifests, string(os.PathSeparator)) == false {
+			manifests = manifests + string(os.PathSeparator)
+		}
 
 		// Build the kustomize command string and pipe it to the output file in the manifests directory
-		cmd := m.NewCommand("kustomize", "build", kustomizationFile, "-o", manifests+"/"+
-			//	pathSegments[len(pathSegments)-1]+".yaml", "--reorder", "legacy")
+		cmd := m.NewCommand("kustomize", "build", kustomizationFile, "--reorder", reorder, "-o", manifests +
+			//pathSegments[len(pathSegments)-1]+".yaml", "--reorder", reorder)
 			pathSegments[len(pathSegments)-1]+".yaml")
 
 		commands = append(commands, cmd)
 	}
 	// Loop and execute the list of kustomization commands
 	for _, cmd := range commands {
-		buf := new(bytes.Buffer)
-		cmd.Stdout = buf
+		//buf := new(bytes.Buffer)
+		//cmd.Stdout = buf
+		cmd.Stdout = m.Out
 		cmd.Stderr = m.Err
 
 		prettyCmd := fmt.Sprintf("%s %s", cmd.Path, strings.Join(cmd.Args, " "))
@@ -91,15 +114,12 @@ func (m *Mixin) buildAndExecuteKustomizeCmds(step interface{}, commands []*exec.
 			prettyCmd := fmt.Sprintf("%s %s", cmd.Path, strings.Join(cmd.Args, " "))
 			return errors.Wrap(err, fmt.Sprintf("error running command %s", prettyCmd))
 		}
-		output := buf.String()
+		//output := buf.String()
 		sensitiveFields := []string{"kustomizeBaseGHToken"}
 		m.Context.SetSensitiveValues(sensitiveFields)
-		_, err = m.Out.Write(buf.Bytes())
+		//_, err = m.Out.Write(buf.Bytes())
 		if err != nil {
 			return err
-		}
-		if m.Debug {
-			fmt.Println("DEBUG: (output) " + output)
 		}
 	}
 	return nil

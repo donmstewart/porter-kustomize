@@ -44,11 +44,8 @@ type DataStoreLoaderFunc func(*Config) error
 
 type Config struct {
 	*context.Context
-	Data *Data
-
-	Manifest     *Manifest
-	ManifestPath string
-	DataLoader   DataStoreLoaderFunc
+	Data       *Data
+	DataLoader DataStoreLoaderFunc
 
 	porterHome string
 }
@@ -191,6 +188,24 @@ func (c *Config) GetMixinRuntimePath(mixin string) (string, error) {
 	return path + "-runtime", nil
 }
 
+func (c *Config) GetPluginsDir() (string, error) {
+	home, err := c.GetHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, "plugins"), nil
+}
+
+func (c *Config) GetPluginPath(plugin string) (string, error) {
+	pluginsDir, err := c.GetPluginsDir()
+	if err != nil {
+		return "", err
+	}
+
+	executablePath := filepath.Join(pluginsDir, plugin)
+	return executablePath, nil
+}
+
 func (c *Config) GetCredentialsDir() (string, error) {
 	home, err := c.GetHomeDir()
 	if err != nil {
@@ -207,10 +222,11 @@ func (c *Config) GetCredentialPath(name string) (string, error) {
 	return filepath.Join(credDir, fmt.Sprintf("%s.yaml", name)), nil
 }
 
-func (c *Config) GetClaimsDir() (string, error) {
+// GetArchiveLogs locates the output for Bundle Archive Operations.
+func (c *Config) GetBundleArchiveLogs() (string, error) {
 	home, err := c.GetHomeDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, "claims"), nil
+	return filepath.Join(home, "archives"), nil
 }

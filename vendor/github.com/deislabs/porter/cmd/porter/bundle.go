@@ -25,6 +25,8 @@ func buildBundleCommands(p *porter.Porter) *cobra.Command {
 	cmd.AddCommand(buildBundleUninstallCommand(p))
 	cmd.AddCommand(buildBundleArchiveCommand(p))
 	cmd.AddCommand(buildBundleExplainCommand(p))
+	cmd.AddCommand(buildBundleCopyCommand(p))
+	cmd.AddCommand(buildBundleInspectCommand(p))
 
 	return cmd
 }
@@ -103,6 +105,8 @@ For example, the 'debug' driver may be specified, which simply logs the info giv
 		"Use a bundle in an OCI registry specified by the given tag")
 	f.BoolVar(&opts.InsecureRegistry, "insecure-registry", false,
 		"Don't require TLS for the registry")
+	f.BoolVar(&opts.Force, "force", false,
+		"Force a fresh pull of the bundle and all dependencies")
 	return cmd
 }
 
@@ -152,6 +156,8 @@ For example, the 'debug' driver may be specified, which simply logs the info giv
 		"Use a bundle in an OCI registry specified by the given tag")
 	f.BoolVar(&opts.InsecureRegistry, "insecure-registry", false,
 		"Don't require TLS for the registry")
+	f.BoolVar(&opts.Force, "force", false,
+		"Force a fresh pull of the bundle and all dependencies")
 
 	return cmd
 }
@@ -201,6 +207,8 @@ For example, the 'debug' driver may be specified, which simply logs the info giv
 		"Use a bundle in an OCI registry specified by the given tag")
 	f.BoolVar(&opts.InsecureRegistry, "insecure-registry", false,
 		"Don't require TLS for the registry")
+	f.BoolVar(&opts.Force, "force", false,
+		"Force a fresh pull of the bundle and all dependencies")
 
 	return cmd
 }
@@ -252,6 +260,8 @@ For example, the 'debug' driver may be specified, which simply logs the info giv
 		"Use a bundle in an OCI registry specified by the given tag")
 	f.BoolVar(&opts.InsecureRegistry, "insecure-registry", false,
 		"Don't require TLS for the registry")
+	f.BoolVar(&opts.Force, "force", false,
+		"Force a fresh pull of the bundle and all dependencies")
 
 	return cmd
 }
@@ -265,7 +275,8 @@ func buildBundlePublishCommand(p *porter.Porter) *cobra.Command {
 		Long:  "Publishes a bundle by pushing the invocation image and bundle to a registry.",
 		Example: `  porter bundle publish
   porter bundle publish --file myapp/porter.yaml
-  porter bundle publish --insecure
+	porter bundle publish --insecure
+	porter bundle publish --archive /tmp/mybuns.tgz --tag myrepo/my-buns:0.1.0
 		`,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return opts.Validate(p.Context)
@@ -278,6 +289,9 @@ func buildBundlePublishCommand(p *porter.Porter) *cobra.Command {
 	f := cmd.Flags()
 	f.StringVarP(&opts.File, "file", "f", "", "Path to the Porter manifest. Defaults to `porter.yaml` in the current directory.")
 	f.BoolVar(&opts.InsecureRegistry, "insecure-registry", false, "Don't require TLS for the registry.")
+	f.StringVarP(&opts.ArchiveFile, "archive", "a", "", "Path to the bundle archive in .tgz format")
+	f.StringVarP(&opts.Tag, "tag", "t", "", "Bundle tag for newly published bundle; required if --archive is supplied")
+
 	return &cmd
 }
 
@@ -285,13 +299,13 @@ func buildBundleArchiveCommand(p *porter.Porter) *cobra.Command {
 
 	opts := porter.ArchiveOptions{}
 	cmd := cobra.Command{
-		Hidden: true,
-		Use:    "archive",
-		Short:  "Archive a bundle",
-		Long:   "Archives a bundle by generating a gzipped tar archive containing the bundle, invocation image and any referenced images.",
+		Use:   "archive",
+		Short: "Archive a bundle",
+		Long:  "Archives a bundle by generating a gzipped tar archive containing the bundle, invocation image and any referenced images.",
 		Example: `  porter bundle archive [FILENAME]
   porter bundle archive --file another/porter.yaml [FILENAME]
   porter bundle archive --cnab-file some/bundle.json [FILENAME]
+  porter bundle archive --tag repo/bundle:tag [FILENAME]
 		  `,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return opts.Validate(args, p.Context)
@@ -303,5 +317,7 @@ func buildBundleArchiveCommand(p *porter.Porter) *cobra.Command {
 	f := cmd.Flags()
 	f.StringVarP(&opts.File, "file", "f", "", "Path to the Porter manifest. Defaults to `porter.yaml` in the current directory.")
 	f.StringVar(&opts.CNABFile, "cnab-file", "", "Path to the CNAB bundle.json file.")
+	f.StringVarP(&opts.Tag, "tag", "t", "",
+		"Use a bundle in an OCI registry specified by the given tag")
 	return &cmd
 }

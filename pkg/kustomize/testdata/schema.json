@@ -86,33 +86,9 @@
             "kubernetes_manifest_output": {
               "type": "string"
             },
-            "version": {
-              "type": "string"
-            },
-            "wait": {
-              "type": "boolean",
-              "default": false
-            },
             "set": {
               "type": "object",
               "additionalProperties": true
-            },
-            "values": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "resetValues": {
-              "type": "boolean",
-              "default": false
-            },
-            "reuseValues": {
-              "type": "boolean",
-              "default": false
-            },
-            "outputs": {
-              "$ref": "#/definitions/outputs"
             }
           },
           "additionalProperties": false,

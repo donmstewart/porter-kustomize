@@ -1,6 +1,7 @@
 package mixin
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"github.com/deislabs/porter/pkg/context"
@@ -35,13 +36,16 @@ func (p *TestMixinProvider) Install(o InstallOptions) (*Metadata, error) {
 	return &Metadata{Name: "exec", Dir: "~/.porter/mixins/exec"}, nil
 }
 
-func (p *TestMixinProvider) Delete(o DeleteOptions) (*Metadata, error) {
+func (p *TestMixinProvider) Uninstall(o UninstallOptions) (*Metadata, error) {
 	return &Metadata{Name: "exec"}, nil
 }
 
 func (p *TestMixinProvider) Run(mixinCxt *context.Context, mixinName string, commandOpts CommandOptions) error {
 	for _, assert := range p.RunAssertions {
 		assert(mixinCxt, mixinName, commandOpts)
+	}
+	if commandOpts.Command == "build" {
+		fmt.Fprintln(mixinCxt.Out, "# exec mixin has no buildtime dependencies")
 	}
 	return nil
 }

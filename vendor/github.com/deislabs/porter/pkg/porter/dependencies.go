@@ -8,16 +8,19 @@ import (
 	"github.com/deislabs/cnab-go/bundle"
 	"github.com/deislabs/porter/pkg/cnab/extensions"
 	cnabprovider "github.com/deislabs/porter/pkg/cnab/provider"
-	"github.com/deislabs/porter/pkg/config"
+	"github.com/deislabs/porter/pkg/context"
+	instancestorage "github.com/deislabs/porter/pkg/instance-storage"
+	"github.com/deislabs/porter/pkg/manifest"
 	"github.com/deislabs/porter/pkg/runtime"
 	"github.com/pkg/errors"
 )
 
 type dependencyExecutioner struct {
-	*config.Config
-	Resolver BundleResolver
-	CNAB     CNABProvider
-	Manifest *config.Manifest
+	*context.Context
+	Manifest        *manifest.Manifest
+	Resolver        BundleResolver
+	CNAB            CNABProvider
+	InstanceStorage instancestorage.Provider
 
 	// These are populated by Prepare, call it or perish in inevitable errors
 	parentOpts BundleLifecycleOpts
@@ -31,10 +34,11 @@ func newDependencyExecutioner(p *Porter) *dependencyExecutioner {
 		Registry: p.Registry,
 	}
 	return &dependencyExecutioner{
-		Config:   p.Config,
-		Resolver: resolver,
-		CNAB:     p.CNAB,
-		Manifest: p.Manifest,
+		Context:         p.Context,
+		Manifest:        p.Manifest,
+		Resolver:        resolver,
+		CNAB:            p.CNAB,
+		InstanceStorage: p.InstanceStorage,
 	}
 }
 
@@ -49,6 +53,8 @@ type queuedDependency struct {
 
 	// cache of the CNAB file contents
 	cnabFileContents []byte
+
+	RelocationMapping string
 }
 
 func (e *dependencyExecutioner) Prepare(parentOpts BundleLifecycleOpts, action cnabAction) error {
@@ -70,7 +76,7 @@ func (e *dependencyExecutioner) Prepare(parentOpts BundleLifecycleOpts, action c
 	return nil
 }
 
-func (e *dependencyExecutioner) Execute(action config.Action) error {
+func (e *dependencyExecutioner) Execute(action manifest.Action) error {
 	if e.action == nil {
 		return errors.New("Prepare must be called before Execute")
 	}
@@ -111,7 +117,7 @@ func (e *dependencyExecutioner) identifyDependencies() error {
 	// Load parent CNAB bundle definition
 	var bun *bundle.Bundle
 	if e.parentOpts.Tag != "" {
-		bunPath, err := e.Resolver.Resolve(e.parentOpts.BundlePullOptions)
+		bunPath, _, err := e.Resolver.Resolve(e.parentOpts.BundlePullOptions)
 		if err != nil {
 			return errors.Wrapf(err, "could not resolve bundle")
 		}
@@ -149,8 +155,9 @@ func (e *dependencyExecutioner) prepareDependency(dep *queuedDependency) error {
 	pullOpts := BundlePullOptions{
 		Tag:              dep.Tag,
 		InsecureRegistry: e.parentOpts.InsecureRegistry,
+		Force:            e.parentOpts.Force,
 	}
-	dep.CNABFile, err = e.Resolver.Resolve(pullOpts)
+	dep.CNABFile, dep.RelocationMapping, err = e.Resolver.Resolve(pullOpts)
 	if err != nil {
 		return errors.Wrapf(err, "error pulling dependency %s", dep.Alias)
 	}
@@ -220,13 +227,14 @@ func (e *dependencyExecutioner) prepareDependency(dep *queuedDependency) error {
 	return nil
 }
 
-func (e *dependencyExecutioner) executeDependency(dep *queuedDependency, parentArgs cnabprovider.ActionArguments, action config.Action) error {
+func (e *dependencyExecutioner) executeDependency(dep *queuedDependency, parentArgs cnabprovider.ActionArguments, action manifest.Action) error {
 	depArgs := cnabprovider.ActionArguments{
-		Insecure:   parentArgs.Insecure,
-		BundlePath: dep.CNABFile,
-		Claim:      fmt.Sprintf("%s-%s", parentArgs.Claim, dep.Alias),
-		Driver:     parentArgs.Driver,
-		Params:     dep.Parameters,
+		Insecure:          parentArgs.Insecure,
+		BundlePath:        dep.CNABFile,
+		Claim:             fmt.Sprintf("%s-%s", parentArgs.Claim, dep.Alias),
+		Driver:            parentArgs.Driver,
+		Params:            dep.Parameters,
+		RelocationMapping: dep.RelocationMapping,
 
 		// For now, assume it's okay to give the dependency the same credentials as the parent
 		CredentialIdentifiers: parentArgs.CredentialIdentifiers,
@@ -238,9 +246,9 @@ func (e *dependencyExecutioner) executeDependency(dep *queuedDependency, parentA
 	}
 
 	// If action is uninstall, no claim will exist
-	if action != config.ActionUninstall {
+	if action != manifest.ActionUninstall {
 		// Collect expected outputs via claim
-		c, err := e.CNAB.FetchClaim(depArgs.Claim)
+		c, err := e.InstanceStorage.Read(depArgs.Claim)
 		if err != nil {
 			return err
 		}

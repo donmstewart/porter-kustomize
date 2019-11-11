@@ -5,7 +5,7 @@ MAKE_OPTS ?= --no-print-directory
 
 REGISTRY ?= $(USER)
 VERSION ?= $(shell git describe --tags 2> /dev/null || echo v0)
-PERMALINK ?= $(shell git name-rev --name-only --tags --no-undefined HEAD &> /dev/null && echo latest || echo canary)
+PERMALINK ?= $(shell git describe --tags --exact-match &> /dev/null && echo latest || echo canary)
 
 KUBECONFIG  ?= $(HOME)/.kube/config
 PORTER_HOME = bin
@@ -38,6 +38,7 @@ build-porter: generate
 
 build-porter-client: generate
 	$(MAKE) $(MAKE_OPTS) build-client MIXIN=porter -f mixin.mk BINDIR=bin
+	$(MAKE) $(MAKE_OPTS) clean-packr
 
 build-mixins: $(addprefix build-mixin-,$(INT_MIXINS))
 build-mixin-%: generate
@@ -71,7 +72,10 @@ get-mixins:
 verify: verify-vendor
 
 verify-vendor: clean-packr dep
-	dep check
+	@dep check || printf '\nRun "make dep-ensure" to fix this error\n\n'
+
+dep-ensure: clean-packr
+	dep ensure
 
 HAS_DEP := $(shell command -v dep)
 dep:
@@ -86,7 +90,7 @@ test-unit:
 	go test ./...
 
 test-integration: build
-	go test -v -timeout 20m -tags=integration ./...
+	go test -timeout 20m -tags=integration ./...
 
 test-cli: clean-last-testrun build init-porter-home-for-ci
 	REGISTRY=$(REGISTRY) KUBECONFIG=$(KUBECONFIG) ./scripts/test/test-cli.sh
@@ -106,15 +110,12 @@ docs-gen:
 docs-preview:
 	hugo serve --source docs/
 
-prep-install-scripts:
+publish:
 	mkdir -p bin/$(VERSION)
-	sed 's|UNKNOWN|$(PERMALINK)|g' scripts/install/install-mac.sh > bin/$(VERSION)/install-mac.sh
-	sed 's|UNKNOWN|$(PERMALINK)|g' scripts/install/install-linux.sh > bin/$(VERSION)/install-linux.sh
-	sed 's|UNKNOWN|$(PERMALINK)|g' scripts/install/install-windows.ps1 > bin/$(VERSION)/install-windows.ps1
-
-publish: prep-install-scripts
 	$(MAKE) $(MAKE_OPTS) publish MIXIN=exec -f mixin.mk
 	$(MAKE) $(MAKE_OPTS) publish MIXIN=kubernetes -f mixin.mk
+
+	VERSION=$(VERSION) PERMALINK=$(PERMALINK) ./scripts/prep-install-scripts.sh
 
 	# AZURE_STORAGE_CONNECTION_STRING will be used for auth in the following commands
 	if [[ "$(PERMALINK)" == "latest" ]]; then \
@@ -210,6 +211,7 @@ clean-last-testrun:
 	-rm -fr cnab/ porter.yaml Dockerfile bundle.json
 
 clean-packr: packr2
+	cd cmd/porter && packr2 clean
 	cd pkg/porter && packr2 clean
 	$(foreach MIXIN, $(INT_MIXINS), \
 		`cd pkg/$(MIXIN) && packr2 clean`; \

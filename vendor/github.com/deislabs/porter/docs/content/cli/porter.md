@@ -29,17 +29,19 @@ I am porter 👩🏽‍✈️, the friendly neighborhood CNAB authoring tool
 
 ### SEE ALSO
 
+* [porter archive](/cli/porter_archive/)	 - Archive a bundle
 * [porter build](/cli/porter_build/)	 - Build a bundle
 * [porter bundles](/cli/porter_bundles/)	 - Bundle commands
+* [porter copy](/cli/porter_copy/)	 - Copy a bundle
 * [porter create](/cli/porter_create/)	 - Create a bundle
 * [porter credentials](/cli/porter_credentials/)	 - Credentials commands
-* [porter docs](/cli/porter_docs/)	 - Generate markdown docs
 * [porter explain](/cli/porter_explain/)	 - Explain a bundle
+* [porter inspect](/cli/porter_inspect/)	 - Inspect a bundle
 * [porter install](/cli/porter_install/)	 - Install a new instance of a bundle
 * [porter instances](/cli/porter_instances/)	 - Bundle Instance commands
 * [porter invoke](/cli/porter_invoke/)	 - Invoke a custom action on a bundle instance
 * [porter list](/cli/porter_list/)	 - list instances of installed bundles
-* [porter mixins](/cli/porter_mixins/)	 - Mixin commands
+* [porter mixins](/cli/porter_mixins/)	 - Mixin commands. Mixins assist with authoring bundles.
 * [porter publish](/cli/porter_publish/)	 - Publish a bundle
 * [porter schema](/cli/porter_schema/)	 - Print the JSON schema for the Porter manifest
 * [porter show](/cli/porter_show/)	 - Show an instance of a bundle

@@ -10,6 +10,7 @@ import (
 
 	"github.com/deislabs/porter/pkg/config"
 	"github.com/deislabs/porter/pkg/context"
+	"github.com/deislabs/porter/pkg/manifest"
 	"github.com/deislabs/porter/pkg/mixin"
 	"github.com/deislabs/porter/pkg/templates"
 	"github.com/pkg/errors"
@@ -18,13 +19,15 @@ import (
 
 type DockerfileGenerator struct {
 	*config.Config
+	*manifest.Manifest
 	*templates.Templates
 	mixin.MixinProvider
 }
 
-func NewDockerfileGenerator(cfg *config.Config, tmpl *templates.Templates, mp mixin.MixinProvider) *DockerfileGenerator {
+func NewDockerfileGenerator(config *config.Config, m *manifest.Manifest, tmpl *templates.Templates, mp mixin.MixinProvider) *DockerfileGenerator {
 	return &DockerfileGenerator{
-		Config:        cfg,
+		Config:        config,
+		Manifest:      m,
 		Templates:     tmpl,
 		MixinProvider: mp,
 	}
@@ -59,7 +62,16 @@ func (g *DockerfileGenerator) buildDockerfile() ([]string, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "error generating Dockefile content for mixins")
 	}
-	lines = append(lines, mixinLines...)
+
+	mixinsTokenIndex := g.getIndexOfPorterMixinsToken(lines)
+	if mixinsTokenIndex == -1 {
+		lines = append(lines, mixinLines...)
+	} else {
+		pretoken := make([]string, mixinsTokenIndex)
+		copy(pretoken, lines)
+		posttoken := lines[mixinsTokenIndex+1:]
+		lines = append(pretoken, append(mixinLines, posttoken...)...)
+	}
 
 	// The template dockerfile copies everything by default, but if the user
 	// supplied their own, copy over cnab/ and porter.yaml
@@ -74,6 +86,29 @@ func (g *DockerfileGenerator) buildDockerfile() ([]string, error) {
 		for _, line := range lines {
 			fmt.Fprintln(g.Out, line)
 		}
+	}
+
+	return lines, nil
+}
+
+// ErrorMessage to be displayed when no ARG BUNDLE_DIR is in Dockerfile
+const ErrorMessage = `
+Dockerfile.tmpl must declare the build argument BUNDLE_DIR.
+Add the following line to the file and re-run porter build: ARG BUNDLE_DIR`
+
+func (g *DockerfileGenerator) readAndValidateDockerfile(s *bufio.Scanner) ([]string, error) {
+	hasBuildArg := false
+	buildArg := "ARG BUNDLE_DIR"
+	var lines []string
+	for s.Scan() {
+		if strings.TrimSpace(s.Text()) == buildArg {
+			hasBuildArg = true
+		}
+		lines = append(lines, s.Text())
+	}
+
+	if !hasBuildArg {
+		return nil, errors.New(ErrorMessage)
 	}
 
 	return lines, nil
@@ -104,11 +139,10 @@ func (g *DockerfileGenerator) getBaseDockerfile() ([]string, error) {
 		}
 		reader = bytes.NewReader(contents)
 	}
-
-	var lines []string
 	scanner := bufio.NewScanner(reader)
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
+	lines, e := g.readAndValidateDockerfile(scanner)
+	if e != nil {
+		return nil, e
 	}
 	return lines, nil
 }
@@ -174,8 +208,8 @@ func (g *DockerfileGenerator) getMixinBuildInput(m string) mixin.BuildInput {
 		}
 	}
 
-	filterSteps := func(action config.Action, steps config.Steps) {
-		mixinSteps := config.Steps{}
+	filterSteps := func(action manifest.Action, steps manifest.Steps) {
+		mixinSteps := manifest.Steps{}
 		for _, step := range steps {
 			if step.GetMixinName() != m {
 				continue
@@ -184,12 +218,12 @@ func (g *DockerfileGenerator) getMixinBuildInput(m string) mixin.BuildInput {
 		}
 		input.Actions[string(action)] = mixinSteps
 	}
-	filterSteps(config.ActionInstall, g.Manifest.Install)
-	filterSteps(config.ActionUpgrade, g.Manifest.Upgrade)
-	filterSteps(config.ActionUninstall, g.Manifest.Uninstall)
+	filterSteps(manifest.ActionInstall, g.Manifest.Install)
+	filterSteps(manifest.ActionUpgrade, g.Manifest.Upgrade)
+	filterSteps(manifest.ActionUninstall, g.Manifest.Uninstall)
 
 	for action, steps := range g.Manifest.CustomActions {
-		filterSteps(config.Action(action), steps)
+		filterSteps(manifest.Action(action), steps)
 	}
 
 	return input
@@ -246,4 +280,13 @@ func (g *DockerfileGenerator) copyMixin(mixin string) error {
 
 	err = g.Context.CopyDirectory(mixinDir, filepath.Join(LOCAL_APP, "mixins"), true)
 	return errors.Wrapf(err, "could not copy mixin directory contents for %s", mixin)
+}
+
+func (g *DockerfileGenerator) getIndexOfPorterMixinsToken(a []string) int {
+	for i, n := range a {
+		if INJECT_PORTER_MIXINS_TOKEN == strings.TrimSpace(n) {
+			return i
+		}
+	}
+	return -1
 }

@@ -4,17 +4,13 @@ import (
 	"fmt"
 
 	"github.com/deislabs/cnab-go/action"
+	"github.com/deislabs/porter/pkg/manifest"
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
-
-	"github.com/deislabs/porter/pkg/config"
 )
 
 func (d *Runtime) Upgrade(args ActionArguments) error {
-	claims, err := d.NewClaimStore()
-	if err != nil {
-		return errors.Wrapf(err, "could not access claim store")
-	}
-	c, err := claims.Read(args.Claim)
+	c, err := d.instanceStorage.Read(args.Claim)
 	if err != nil {
 		return errors.Wrapf(err, "could not load bundle instance %s", args.Claim)
 	}
@@ -28,7 +24,7 @@ func (d *Runtime) Upgrade(args ActionArguments) error {
 	}
 
 	if len(args.Params) > 0 {
-		c.Parameters, err = d.loadParameters(&c, args.Params, string(config.ActionUpgrade))
+		c.Parameters, err = d.loadParameters(&c, args.Params, string(manifest.ActionUpgrade))
 		if err != nil {
 			return errors.Wrap(err, "invalid parameters")
 		}
@@ -61,13 +57,18 @@ func (d *Runtime) Upgrade(args ActionArguments) error {
 		fmt.Fprintf(d.Err, "upgrading bundle %s (%s) as %s\n\tparams: %v\n\tcreds: %v\n", c.Bundle.Name, args.BundlePath, c.Name, paramKeys, credKeys)
 	}
 
+	var result *multierror.Error
 	// Upgrade and capture error
-	runErr := i.Run(&c, creds, d.ApplyConfig(args)...)
+	err = i.Run(&c, creds, d.ApplyConfig(args)...)
+	if err != nil {
+		result = multierror.Append(result, errors.Wrap(err, "failed to upgrade the bundle"))
+	}
 
 	// ALWAYS write out a claim, even if the upgrade fails
-	saveErr := claims.Store(c)
-	if runErr != nil {
-		return errors.Wrap(runErr, "failed to upgrade the bundle")
+	err = d.instanceStorage.Store(c)
+	if err != nil {
+		result = multierror.Append(result, errors.Wrap(err, "failed to record the upgrade for the bundle"))
 	}
-	return errors.Wrap(saveErr, "failed to record the upgrade for the bundle")
+
+	return result.ErrorOrNil()
 }

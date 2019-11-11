@@ -13,7 +13,7 @@ func buildMixinCommands(p *porter.Porter) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "mixins",
 		Aliases: []string{"mixin"},
-		Short:   "Mixin commands",
+		Short:   "Mixin commands. Mixins assist with authoring bundles.",
 		Annotations: map[string]string{
 			"group": "resource",
 		},
@@ -21,7 +21,7 @@ func buildMixinCommands(p *porter.Porter) *cobra.Command {
 
 	cmd.AddCommand(buildMixinsListCommand(p))
 	cmd.AddCommand(BuildMixinInstallCommand(p))
-	cmd.AddCommand(BuildMixinDeleteCommand(p))
+	cmd.AddCommand(BuildMixinUninstallCommand(p))
 	cmd.AddCommand(buildMixinsFeedCommand(p))
 
 	return cmd
@@ -73,17 +73,17 @@ func BuildMixinInstallCommand(p *porter.Porter) *cobra.Command {
 	return cmd
 }
 
-func BuildMixinDeleteCommand(p *porter.Porter) *cobra.Command {
-	opts := mixin.DeleteOptions{}
+func BuildMixinUninstallCommand(p *porter.Porter) *cobra.Command {
+	opts := mixin.UninstallOptions{}
 	cmd := &cobra.Command{
-		Use:     "delete NAME",
-		Short:   "Delete a mixin",
-		Example: `  porter mixin delete helm`,
+		Use:     "uninstall NAME",
+		Short:   "Uninstall a mixin",
+		Example: `  porter mixin uninstall helm`,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return opts.Validate(args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return p.DeleteMixin(opts)
+			return p.UninstallMixin(opts)
 		},
 	}
 
@@ -127,7 +127,7 @@ bin/
     ├── mymixin-linux-amd64
     └── mymixin-windows-amd64.exe
 
-See https://porter.sh/mixin-distribution more details.
+See https://porter.sh/mixin-dev-guide/distribution more details.
 `,
 		Example: `  porter mixin feed generate
   porter mixin feed generate --dir bin --file bin/atom.xml --template porter-atom-template.xml`,

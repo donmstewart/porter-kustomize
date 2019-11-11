@@ -3,14 +3,15 @@ package cnabtooci
 import (
 	"context"
 	"fmt"
+
 	"strings"
 
 	containerdRemotes "github.com/containerd/containerd/remotes"
 	"github.com/deislabs/cnab-go/bundle"
-	portercontext "github.com/deislabs/porter/pkg/context"
 	"github.com/docker/cli/cli/command"
 	dockerconfig "github.com/docker/cli/cli/config"
 	cliflags "github.com/docker/cli/cli/flags"
+	"github.com/docker/cnab-to-oci/relocation"
 	"github.com/docker/cnab-to-oci/remotes"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/api/types"
@@ -18,6 +19,8 @@ import (
 	"github.com/docker/docker/pkg/term"
 	"github.com/docker/docker/registry"
 	"github.com/pkg/errors"
+
+	portercontext "github.com/deislabs/porter/pkg/context"
 )
 
 type Registry struct {
@@ -30,11 +33,11 @@ func NewRegistry(c *portercontext.Context) *Registry {
 	}
 }
 
-// PullBundle pulls a bundle from an OCI registry.
-func (r *Registry) PullBundle(tag string, insecureRegistry bool) (*bundle.Bundle, error) {
+// PullBundle pulls a bundle from an OCI registry. Returns the bundle, and an optional image relocation mapping, if applicable.
+func (r *Registry) PullBundle(tag string, insecureRegistry bool) (*bundle.Bundle, relocation.ImageRelocationMap, error) {
 	ref, err := reference.ParseNormalizedNamed(tag)
 	if err != nil {
-		return nil, errors.Wrap(err, "invalid bundle tag format, expected REGISTRY/name:tag")
+		return nil, nil, errors.Wrap(err, "invalid bundle tag format, expected REGISTRY/name:tag")
 	}
 
 	var insecureRegistries []string
@@ -43,17 +46,17 @@ func (r *Registry) PullBundle(tag string, insecureRegistry bool) (*bundle.Bundle
 		insecureRegistries = append(insecureRegistries, reg)
 	}
 
-	bun, err := remotes.Pull(context.Background(), ref, r.createResolver(insecureRegistries))
+	bun, reloMap, err := remotes.Pull(context.Background(), ref, r.createResolver(insecureRegistries))
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to pull remote bundle")
+		return nil, nil, errors.Wrap(err, "unable to pull remote bundle")
 	}
-	return bun, nil
+	return bun, reloMap, nil
 }
 
-func (r *Registry) PushBundle(bun *bundle.Bundle, tag string, insecureRegistry bool) error {
+func (r *Registry) PushBundle(bun *bundle.Bundle, tag string, insecureRegistry bool) (relocation.ImageRelocationMap, error) {
 	ref, err := ParseOCIReference(tag) //tag from manifest
 	if err != nil {
-		return errors.Wrap(err, "invalid bundle tag reference. expected value is REGISTRY/bundle:tag")
+		return nil, errors.Wrap(err, "invalid bundle tag reference. expected value is REGISTRY/bundle:tag")
 	}
 	var insecureRegistries []string
 	if insecureRegistry {
@@ -63,16 +66,16 @@ func (r *Registry) PushBundle(bun *bundle.Bundle, tag string, insecureRegistry b
 
 	resolver := r.createResolver(insecureRegistries)
 
-	err = remotes.FixupBundle(context.Background(), bun, ref, resolver, remotes.WithEventCallback(r.displayEvent))
+	rm, err := remotes.FixupBundle(context.Background(), bun, ref, resolver, remotes.WithEventCallback(r.displayEvent), remotes.WithAutoBundleUpdate())
 	if err != nil {
-		return err
+		return nil, err
 	}
-	d, err := remotes.Push(context.Background(), bun, ref, resolver, true)
+	d, err := remotes.Push(context.Background(), bun, rm, ref, resolver, true)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	fmt.Fprintf(r.Out, "Bundle tag %s pushed successfully, with digest %q\n", ref, d.Digest)
-	return nil
+	return rm, nil
 }
 
 // PushInvocationImage pushes the invocation image from the Docker image cache to the specified location

@@ -4,10 +4,13 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/go
 
 trigger:
+#  tags:
+#    include:
+#    - v0.1.*
   branches:
     include:
-      - refs/heads/master
-      - refs/tags/*
+    - master
+    - develop
 
 pool:
   vmImage: 'Ubuntu 16.04'
@@ -16,14 +19,14 @@ variables:
   GOBIN:  '$(GOPATH)/bin' # Go binaries path
   GOROOT: '/usr/local/go1.11' # Go installation path
   GOPATH: '$(system.defaultWorkingDirectory)/gopath' # Go workspace path
-  modulePath: '$(GOPATH)/src/github.com/$(build.repository.name)' # Path to the module's cod
+  modulePath: '$(GOPATH)/src/github.com/$(build.repository.name)' # Path to the module's code
 
 steps:
 - task: Docker@1
   displayName: Login
   inputs:
     containerRegistryType: Container Registry
-    dockerRegistryEndpoint: deislabs-registry
+    dockerRegistryEndpoint: docker-hub
     command: login
 
 - script: |
@@ -37,17 +40,18 @@ steps:
   displayName: 'Set up the Go workspace'
 
 - script: |
-    make build test
+    go get -u github.com/gobuffalo/packr/v2/packr2
+    curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sh
+    curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+    rm Gopkg.lock || true
+    dep ensure -v
   workingDirectory: '$(modulePath)'
-  displayName: 'Unit Test'
+  displayName: 'Go Get (Golang Dependencies)'
 
 - script: |
-    make xbuild-all
+    ./bin/goreleaser --debug --config=goreleaser.yml
   workingDirectory: '$(modulePath)'
-  displayName: 'Cross Compile'
+  displayName: 'Build (GoReleaser)'
+  env: 
+    GITHUB_TOKEN: $(github.token)
 
-- script: |
-    AZURE_STORAGE_CONNECTION_STRING=$(AZURE_STORAGE_CONNECTION_STRING) make publish
-  workingDirectory: '$(modulePath)'
-  displayName: 'Publish'
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))

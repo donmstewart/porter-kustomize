@@ -1,14 +1,19 @@
 package porter
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/deislabs/cnab-go/bundle"
 	"os"
 	"path/filepath"
 	"strconv"
 
+	"github.com/deislabs/cnab-go/bundle/loader"
 	"github.com/deislabs/porter/pkg/config"
 	"github.com/deislabs/porter/pkg/context"
+	"github.com/deislabs/porter/pkg/manifest"
 	"github.com/deislabs/porter/pkg/mixin"
+	"github.com/docker/cnab-to-oci/relocation"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
@@ -18,7 +23,7 @@ type RunOptions struct {
 
 	File         string
 	Action       string
-	parsedAction config.Action
+	parsedAction manifest.Action
 }
 
 func NewRunOptions(c *config.Config) RunOptions {
@@ -49,7 +54,7 @@ func (o *RunOptions) validateAction() error {
 		}
 	}
 
-	o.parsedAction = config.Action(o.Action)
+	o.parsedAction = manifest.Action(o.Action)
 	return nil
 }
 
@@ -86,7 +91,7 @@ func (p *Porter) Run(opts RunOptions) error {
 	if err != nil {
 		return err
 	}
-	runtimeManifest := config.NewRuntimeManifest(p.Context, opts.parsedAction, p.Manifest)
+	runtimeManifest := manifest.NewRuntimeManifest(p.Context, opts.parsedAction, p.Manifest)
 
 	err = runtimeManifest.Validate()
 	if err != nil {
@@ -99,6 +104,16 @@ func (p *Porter) Run(opts RunOptions) error {
 	err = runtimeManifest.Prepare()
 	if err != nil {
 		return err
+	}
+
+	//Update the runtimeManifest images with the bundle.json and relocation mapping (if it's there)
+	rtb, reloMap, err := p.getImageMappingFiles()
+	if err != nil {
+		return err
+	}
+	err = runtimeManifest.ResolveImages(rtb, reloMap)
+	if err != nil {
+		return errors.Wrap(err, "unable to resolve bundle images")
 	}
 
 	err = p.FileSystem.MkdirAll(context.MixinOutputsDir, 0755)
@@ -121,7 +136,7 @@ func (p *Porter) Run(opts RunOptions) error {
 
 			input := &ActionInput{
 				action: opts.parsedAction,
-				Steps:  []*config.Step{step},
+				Steps:  []*manifest.Step{step},
 			}
 			inputBytes, _ := yaml.Marshal(input)
 			cmd := mixin.CommandOptions{
@@ -157,8 +172,8 @@ func (p *Porter) Run(opts RunOptions) error {
 }
 
 type ActionInput struct {
-	action config.Action
-	Steps  []*config.Step `yaml:"steps"`
+	action manifest.Action
+	Steps  []*manifest.Step `yaml:"steps"`
 }
 
 // MarshalYAML marshals the step nested under the action
@@ -253,4 +268,28 @@ func (p *Porter) ApplyBundleOutputs(opts RunOptions, outputs map[string]string) 
 		}
 	}
 	return nil
+}
+
+func (p *Porter) getImageMappingFiles() (*bundle.Bundle, relocation.ImageRelocationMap, error) {
+	l := loader.New()
+	bunBytes, err := p.FileSystem.ReadFile("/cnab/bundle.json")
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "couldn't read runtime bundle.json")
+	}
+	rtb, err := l.LoadData(bunBytes)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "couldn't load runtime bundle.json")
+	}
+	var reloMap relocation.ImageRelocationMap
+	if _, err := p.FileSystem.Stat("/cnab/app/relocation-mapping.json"); err == nil {
+		reloBytes, err := p.FileSystem.ReadFile("/cnab/app/relocation-mapping.json")
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "couldn't read relocation file")
+		}
+		err = json.Unmarshal(reloBytes, &reloMap)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "couldn't load relocation file")
+		}
+	}
+	return rtb, reloMap, nil
 }

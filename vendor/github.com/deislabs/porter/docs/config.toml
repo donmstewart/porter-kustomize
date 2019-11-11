@@ -101,9 +101,21 @@ defaultContentLanguage = "en"
     parent = "cli"
   [[menu.main]]
     name = "porter mixins list"
-    url = "/cli#porter-mixins-list"
+    url = "/cli/porter_mixins_list/"
     identifier = "cli-mixins-list"
     weight = 140
+    parent = "cli"
+  [[menu.main]]
+    name = "porter mixins install"
+    url = "/cli/porter_mixins_install/"
+    identifier = "cli-mixins-install"
+    weight = 141
+    parent = "cli"
+  [[menu.main]]
+    name = "porter mixins uninstall"
+    url = "/cli/porter_mixins_uninstall/"
+    identifier = "cli-mixins-uninstall"
+    weight = 142
     parent = "cli"
   [[menu.main]]
     name = "porter mixins feed template"
@@ -116,6 +128,18 @@ defaultContentLanguage = "en"
     url = "/cli#porter-mixins-feed-generate"
     identifier = "cli-mixins-feed-generate"
     weight = 151
+    parent = "cli"
+  [[menu.main]]
+    name = "porter copy"
+    url = "/cli#porter-copy"
+    identifier = "cli-copy"
+    weight = 160
+    parent = "cli"
+  [[menu.main]]
+    name = "porter archive"
+    url = "/cli#porter-archive"
+    identifier = "cli-archive"
+    weight = 161
     parent = "cli"
   [[menu.main]]
     name = "porter schema"
@@ -200,29 +224,70 @@ defaultContentLanguage = "en"
     weight = 301
     parent = "authoring-bundles"
   [[menu.main]]
+    name = "Custom Dockerfile"
+    url = "/custom-dockerfile/"
+    identifier = "custom-dockerfile"
+    weight = 302
+    parent = "authoring-bundles"
+  [[menu.main]]
     name = "Using Mixins"
     url = "/using-mixins"
     identifier = "using-mixins"
-    weight = 302
+    weight = 303
     parent = "authoring-bundles"
   [[menu.main]]
     name = "Dependencies"
     url = "/dependencies"
     identifier = "dependencies"
-    weight = 303
+    weight = 304
     parent = "authoring-bundles"
   [[menu.main]]
     name = "Using Parameters, Credentials and Outputs"
     url = "/wiring"
     identifier = "wiring"
-    weight = 303
+    weight = 305
     parent = "authoring-bundles"
+
+[[menu.main]]
+  name = "Distributing Bundles"
+  identifier = "distributing-bundles"
+  weight = 310
+  [[menu.main]]
+    name = "Overview"
+    url = "/distributing-bundles"
+    identifier = "distributing-bundles-overview"
+    weight = 311
+    parent = "distributing-bundles"
+  [[menu.main]]
+    name = "Copying Bundles"
+    identifier = "copying-bundles"
+    url = "/copying-bundles"
+    weight = 312
+    parent = "distributing-bundles"
+  [[menu.main]]
+    name = "Archiving Bundles"
+    identifier = "archiving-bundles"
+    url = "/archiving-bundles"
+    weight = 313
+    parent = "distributing-bundles"
 
 [[menu.main]]
   name = "Examining Bundles"
   identifier = "examining-bundles"
-  url = "/examining-bundles"
   weight = 325
+  [[menu.main]]
+    name = "Overview"
+    url = "/examining-bundles"
+    identifier = "examining-bundles-overview"
+    weight = 326
+    parent = "examining-bundles"
+  [[menu.main]]
+    name = "Inspecting Bundle Images"
+    url = "/inspect-bundle"
+    identifier = "inspect-bundles"
+    weight = 327
+    parent = "examining-bundles"
+
 
 [[menu.main]]
   name = "Developing Mixins"
@@ -230,25 +295,31 @@ defaultContentLanguage = "en"
   weight = 350
   [[menu.main]]
     name = "Overview"
-    url = "/mixin-dev-guide"
+    url = "/mixin-dev-guide/"
     identifier = "mixin-dev-guide"
     weight = 351
     parent = "developing-mixins"
   [[menu.main]]
     name = "Commands"
-    url = "/mixin-commands"
+    url = "/mixin-dev-guide/commands/"
     identifier = "mixin-commands"
     weight = 353
     parent = "developing-mixins"
   [[menu.main]]
+    name = "Testing"
+    url = "/mixin-dev-guide/testing/"
+    identifier = "mixin-testing"
+    weight = 355
+    parent = "developing-mixins"
+  [[menu.main]]
     name = "Mixin Architecture"
-    url = "/mixin-architecture"
+    url = "/mixin-dev-guide/architecture/"
     identifier = "mixin-architecture"
     weight = 360
     parent = "developing-mixins"
   [[menu.main]]
     name = "Distributing Mixins"
-    url = "/mixin-distribution"
+    url = "/mixin-dev-guide/distribution/"
     identifier = "mixin-distribution"
     weight = 361
     parent = "developing-mixins"

@@ -12,7 +12,7 @@ func buildBundleExplainCommand(p *porter.Porter) *cobra.Command {
 	cmd := cobra.Command{
 		Use:   "explain",
 		Short: "Explain a bundle",
-		Long:  "Explain how to use a bundle by printing the parameters, credentials, outputs, actions and images.",
+		Long:  "Explain how to use a bundle by printing the parameters, credentials, outputs, actions.",
 		Example: `  porter bundle explain
   porter bundle explain --file another/porter.yaml
   porter bundle explain --cnab-file some/bundle.json

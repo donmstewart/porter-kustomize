@@ -54,6 +54,7 @@ func buildRootCommand() *cobra.Command {
 	cmd.AddCommand(buildBundleCommands(p))
 	cmd.AddCommand(buildInstanceCommands(p))
 	cmd.AddCommand(buildMixinCommands(p))
+	cmd.AddCommand(buildPluginsCommands(p))
 	cmd.AddCommand(buildCredentialsCommands(p))
 
 	for _, alias := range buildAliasCommands(p) {
@@ -69,7 +70,7 @@ func buildRootCommand() *cobra.Command {
 	cobra.AddTemplateFunc("ShouldShowUngroupedCommand", ShouldShowUngroupedCommand)
 
 	if includeDocsCommand {
-		cmd.AddCommand(buildDocsCommand())
+		cmd.AddCommand(buildDocsCommand(p))
 	}
 
 	return cmd

@@ -87,6 +87,9 @@
                 "minItems": 1
               }
             },
+            "reorder": {
+              "type": "string"
+            },
             "kubernetes_manifest_output": {
               "type": "string"
             },
@@ -163,6 +166,9 @@
               }
             },
             "kubernetes_manifest_output": {
+              "type": "string"
+            },
+            "reorder": {
               "type": "string"
             },
             "set": {
