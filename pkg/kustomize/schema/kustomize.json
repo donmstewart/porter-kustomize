@@ -16,6 +16,182 @@
             "reorder": {
               "type": "string"
             },
+            "edit": {
+              "type": "object",
+              "properties": {
+                "description": {
+                  "$ref": "#/definitions/stepDescription"
+                },
+                "add": {
+                  "type": "object",
+                  "properties": {
+                    "annotation": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          },
+                          "force": {
+                            "type": "boolean",
+                            "default": false
+                          }
+                        },
+                        "required": [
+                          "key", "value"
+                        ]
+                      },
+                      "minItems": 1
+                    },
+                    "base": {
+                      "type": "array",
+                      "items": {
+                        "path": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [ "path" ],
+                      "minItems": 1
+                    },
+                    "configmap": {
+                      "type": "object",
+                      "properties": {
+                        "from-file": {
+                          "type": "array",
+                          "items": {
+                            "file": {
+                              "type": "string"
+                            }
+                          },
+                          "minItems": 1,
+                          "required": [ "file" ]
+                        },
+                        "from-env-file": {
+                          "type": "array",
+                          "file": {
+                            "type": "string"
+                          },
+                          "minItems": 1,
+                          "required": [ "file" ]
+                        },
+                        "from-literal": {
+                          "type": "array",
+                          "file": {
+                            "type": "string"
+                          },
+                          "minItems": 1,
+                          "required": [ "file" ]
+                        }
+                      },
+                      "additionalProperties": false,
+                      "anyOf": [
+                        { "required": [ "from-file" ] },
+                        { "required": [ "from-env-file" ] },
+                        { "required": [ "from-literal" ] }
+                      ]
+                    },
+                    "labels": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          },
+                          "force": {
+                            "type": "boolean",
+                            "default": false
+                          }
+                        },
+                        "required": [ "key", "value" ],
+                        "additionalProperties": false
+                      },
+                      "minItems": 1
+                    },
+                    "patch": {
+                      "type": "array",
+                      "path": {
+                        "type": "string"
+                      },
+                      "minItems": 1,
+                      "additionalPropertifes": false,
+                      "required": [ "path" ]
+                    },
+                    "resource": {
+                      "type": "array",
+                      "path": {
+                        "type": "string"
+                      },
+                      "minItems": 1,
+                      "required": [ "path" ]
+                    },
+                    "secrets": {
+                      "type": "object",
+                      "parameters": {
+                        "from-file": {
+                          "type": "array",
+                          "secret": {
+                            "type": "object",
+                            "parameters" : {
+                              "file":{
+                                "type": "string"
+                              },
+                              "namespace": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [ "file"]
+                        },
+                        "from-env-file": {
+                          "type": "array",
+                          "secret": {
+                            "type": "object",
+                            "parameters": {
+                              "file": {
+                                "type": "string"
+                              },
+                              "namespace": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [ "file" ]
+                          },
+                          "minItems": 1
+                        },
+                        "from-literal": {
+                          "type": "array",
+                          "secret": {
+                            "type": "object",
+                            "namespace": {
+                              "type": "string"
+                            },
+                            "path": {
+                              "type": "string"
+                            }
+                          },
+                          "minItems": 1
+                        },
+                        "namespace": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "fix": {
+                  "type": "object"
+                },
+                "remove": {
+                  "type": "object"
+                },
             "kustomization_input": {
               "type": "array",
               "items": {
@@ -77,6 +253,17 @@
             "description": {
               "$ref": "#/definitions/stepDescription"
             },
+            "set": {
+              "type": "object",
+              "image": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
             "name": {
               "type": "string"
             },
